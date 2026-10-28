@@ -1,6 +1,28 @@
 # rustbot
 A robot arm built around and esp32 and rust
 
+## Firmware development
+
+The firmware project lives directly in this repository's root and targets the
+ESP32-WROOM-32 (`xtensa-esp32-none-elf`). It was generated with `esp-generate`
+using Embassy async, serial logging, and panic backtraces. Wi-Fi and BLE are not
+enabled yet.
+
+Install the Espressif Rust toolchain using `espup install` and load its environment
+with `source ~/export-esp.sh`. Install `espflash` with `cargo install espflash`
+if it is not already available.
+
+From the repository root:
+
+```sh
+cargo build
+cargo run
+```
+
+`cargo run` builds, flashes the connected ESP32 over serial, and opens the serial
+monitor. The generated starter firmware logs a message once per second; servo
+and joystick control are not implemented yet.
+
 The project is based on this:
 https://howtomechatronics.com/tutorials/arduino/diy-arduino-robot-arm-with-smartphone-control/
 
