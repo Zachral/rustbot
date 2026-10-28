@@ -7,20 +7,15 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use esp_hal::main;
-use embassy_executor::Spawner;
-use embassy_time::{Duration, Timer};
+use esp_hal::main; 
 use esp_hal::delay::Delay;
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
-use esp_hal::mcpwm::operator::PwmPinConfig;
+
 use esp_hal::mcpwm::timer::PwmWorkingMode;
 use esp_hal::mcpwm::{PeripheralClockConfig,McPwm}; 
 use esp_hal::time::Rate;
-use esp_hal::timer::timg::TimerGroup;
-use esp_hal::xtensa_lx::timer::delay;
-use esp_println::println;
-use log::info;
+use servos::servo_init;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -43,33 +38,30 @@ fn main() -> ! {
     let peripherals = esp_hal::init(config);
     let clock_cfg = PeripheralClockConfig::with_frequency(Rate::from_mhz(32)).unwrap();
     let delay = Delay::new();
-
+    let mut pwm0 = McPwm::new(peripherals.MCPWM0, clock_cfg);
     //Servo setup
-    let mut mcpwm = McPwm::new(peripherals.MCPWM0, clock_cfg);
-    mcpwm.operator0.set_timer(&mcpwm.timer0);
+    let mut servo_1 = servo_init(pwm0.operator0, &pwm0.timer0, peripherals.GPIO33);
+    
 
-    let mut pwm_pin = mcpwm
-        .operator0
-        .with_pin_a(peripherals.GPIO33,PwmPinConfig::UP_ACTIVE_HIGH); 
        
     let timer_clock_cfg = clock_cfg
         .timer_clock_with_frequency(19_999, PwmWorkingMode::Increase, Rate::from_hz(50))
         .unwrap();
 
-    mcpwm.timer0.start(timer_clock_cfg);
+    pwm0.timer0.start(timer_clock_cfg);
 
 
 
     loop {
-        pwm_pin.set_timestamp(1000);
+        servo_1.set_pulse_width(1000);
         esp_println::println!("1000");
         delay.delay_millis(1500);
 
-        pwm_pin.set_timestamp(2000);
+        servo_1.set_pulse_width(2000);
         esp_println::println!("2000");
         delay.delay_millis(1500);
 
-        pwm_pin.set_timestamp(2500);
+        servo_1.set_pulse_width(2500);
         esp_println::println!("2500");
         delay.delay_millis(1500);
     }
