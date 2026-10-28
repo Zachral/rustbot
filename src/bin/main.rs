@@ -7,11 +7,19 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
+use esp_hal::main;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
+use esp_hal::delay::Delay;
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
+use esp_hal::mcpwm::operator::PwmPinConfig;
+use esp_hal::mcpwm::timer::PwmWorkingMode;
+use esp_hal::mcpwm::{PeripheralClockConfig,McPwm}; 
+use esp_hal::time::Rate;
 use esp_hal::timer::timg::TimerGroup;
+use esp_hal::xtensa_lx::timer::delay;
+use esp_println::println;
 use log::info;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -22,8 +30,10 @@ esp_bootloader_esp_idf::esp_app_desc!();
     clippy::large_stack_frames,
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
-#[esp_rtos::main]
-async fn main(spawner: Spawner) -> ! {
+
+
+#[main]
+fn main() -> ! {
     // generator version: 1.4.0
     // generator parameters: -o esp32 -o esp32-wroom-32 -o embassy -o unstable-hal -o log -o esp-backtrace -o vscode
 
@@ -31,36 +41,37 @@ async fn main(spawner: Spawner) -> ! {
 
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
+    let clock_cfg = PeripheralClockConfig::with_frequency(Rate::from_mhz(32)).unwrap();
+    let delay = Delay::new();
 
-    // The following pins are used to bootstrap the chip. They are available
-    // for use, but check the datasheet of the module for more information on them.
-    // - GPIO0
-    // - GPIO2
-    // - GPIO5
-    // - GPIO12
-    // - GPIO15
-    // These GPIO pins are in use by some feature of the module and should not be used.
-    let _gpio6 = peripherals.GPIO6;
-    let _gpio7 = peripherals.GPIO7;
-    let _gpio8 = peripherals.GPIO8;
-    let _gpio9 = peripherals.GPIO9;
-    let _gpio10 = peripherals.GPIO10;
-    let _gpio11 = peripherals.GPIO11;
-    let _gpio16 = peripherals.GPIO16;
-    let _gpio20 = peripherals.GPIO20;
+    //Servo setup
+    let mut mcpwm = McPwm::new(peripherals.MCPWM0, clock_cfg);
+    mcpwm.operator0.set_timer(&mcpwm.timer0);
 
-    let timg0 = TimerGroup::new(peripherals.TIMG0);
-    esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
+    let mut pwm_pin = mcpwm
+        .operator0
+        .with_pin_a(peripherals.GPIO33,PwmPinConfig::UP_ACTIVE_HIGH); 
+       
+    let timer_clock_cfg = clock_cfg
+        .timer_clock_with_frequency(19_999, PwmWorkingMode::Increase, Rate::from_hz(50))
+        .unwrap();
 
-    info!("Embassy initialized!");
+    mcpwm.timer0.start(timer_clock_cfg);
 
-    // TODO: Spawn some tasks
-    let _ = spawner;
+
 
     loop {
-        info!("Hello world!");
-        Timer::after(Duration::from_secs(1)).await;
+        pwm_pin.set_timestamp(1000);
+        esp_println::println!("1000");
+        delay.delay_millis(1500);
+
+        pwm_pin.set_timestamp(2000);
+        esp_println::println!("2000");
+        delay.delay_millis(1500);
+
+        pwm_pin.set_timestamp(2500);
+        esp_println::println!("2500");
+        delay.delay_millis(1500);
     }
 
-    // for inspiration have a look at the examples at https://github.com/esp-rs/esp-hal/tree/esp-hal-v1.2.2/examples
 }
