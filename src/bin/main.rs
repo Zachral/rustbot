@@ -7,14 +7,21 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
+
 use esp_hal::main; 
 use esp_hal::delay::Delay;
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
+use embassy_executor::Spawner;
+use esp_hal::timer::timg::TimerGroup;
+use embassy_time::{Duration, Timer};
+use esp_println::{self as _, println};
 
 use esp_hal::mcpwm::timer::PwmWorkingMode;
 use esp_hal::mcpwm::{PeripheralClockConfig,McPwm}; 
 use esp_hal::time::Rate;
+use esp_hal::analog::adc::{Adc, AdcConfig, Attenuation};
+use esp_hal::gpio::{Input, InputConfig};
 use servos::servo_init;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -27,8 +34,8 @@ esp_bootloader_esp_idf::esp_app_desc!();
 )]
 
 
-#[main]
-fn main() -> ! {
+#[esp_rtos::main]
+async fn main(spawner: Spawner) -> ! {
     // generator version: 1.4.0
     // generator parameters: -o esp32 -o esp32-wroom-32 -o embassy -o unstable-hal -o log -o esp-backtrace -o vscode
 
@@ -42,8 +49,20 @@ fn main() -> ! {
     //Servo setup
     let mut servo_1 = servo_init(pwm0.operator0, &pwm0.timer0, peripherals.GPIO33);
     
+    //joystick
+    let mut  adc2_config = AdcConfig::new();
+    let mut vrx_pin = adc2_config.enable_pin(peripherals.GPIO13, Attenuation::_11dB); 
+    let mut vry_pin = adc2_config.enable_pin(peripherals.GPIO14, Attenuation::_11dB); 
+    let mut adc2 = Adc::new(peripherals.ADC2,adc2_config); 
 
-       
+    let mut prev_vrx: u16 = 0;
+    let mut prev_vry: u16 = 0;
+    let mut print_vals = true;   
+    let timg0 = TimerGroup::new(peripherals.TIMG0);
+    esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
+    
+
+    let _ = spawner;
     let timer_clock_cfg = clock_cfg
         .timer_clock_with_frequency(19_999, PwmWorkingMode::Increase, Rate::from_hz(50))
         .unwrap();
@@ -53,17 +72,30 @@ fn main() -> ! {
 
 
     loop {
-        servo_1.set_pulse_width(1000);
-        esp_println::println!("1000");
-        delay.delay_millis(1500);
+                let Ok(vry): Result<u16, _> = nb::block!(adc2.read_oneshot(&mut vry_pin)) else {
+            continue;
+        };
+        let Ok(vrx): Result<u16, _> = nb::block!(adc2.read_oneshot(&mut vrx_pin)) else {
+            continue;
+        };
 
-        servo_1.set_pulse_width(2000);
-        esp_println::println!("2000");
-        delay.delay_millis(1500);
+        if vrx.abs_diff(prev_vrx) > 100 {
+            prev_vrx = vrx;
+            print_vals = true;
+        }
 
-        servo_1.set_pulse_width(2500);
-        esp_println::println!("2500");
-        delay.delay_millis(1500);
+        if vry.abs_diff(prev_vry) > 100 {
+            prev_vry = vry;
+            print_vals = true;
+        }
+
+        if print_vals {
+            print_vals = false;
+
+            println!("X: {} Y: {}\r\n", vrx, vry);
+        }
+
+        Timer::after(Duration::from_millis(50)).await;
     }
 
 }
