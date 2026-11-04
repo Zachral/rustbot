@@ -29,9 +29,10 @@ nb = "1.1.0"
 critical-section = "1.2.0"
 static_cell      = "2.1.1"
 servos = { path = "servos" }
+joystick = { path = "joystick"}
 
 [workspace]
-members = ["servos"]
+members = ["joystick","servos"]
 resolver = "3"
 
 

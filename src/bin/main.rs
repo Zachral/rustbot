@@ -7,7 +7,8 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-
+use core::result::Result::Ok;
+use esp_hal::analog::adc::AdcConfig;
 use esp_hal::main; 
 use esp_hal::delay::Delay;
 use esp_backtrace as _;
@@ -17,11 +18,10 @@ use esp_hal::timer::timg::TimerGroup;
 use embassy_time::{Duration, Timer};
 use esp_println::{self as _, println};
 
-use esp_hal::mcpwm::timer::PwmWorkingMode;
+use esp_hal::mcpwm::timer::{PeriodUpdatingMethod, PwmWorkingMode};
 use esp_hal::mcpwm::{PeripheralClockConfig,McPwm}; 
 use esp_hal::time::Rate;
-use esp_hal::analog::adc::{Adc, AdcConfig, Attenuation};
-use esp_hal::gpio::{Input, InputConfig};
+use joystick:: joystick_init; 
 use servos::servo_init;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -50,14 +50,13 @@ async fn main(spawner: Spawner) -> ! {
     let mut servo_1 = servo_init(pwm0.operator0, &pwm0.timer0, peripherals.GPIO33);
     
     //joystick
-    let mut  adc2_config = AdcConfig::new();
-    let mut vrx_pin = adc2_config.enable_pin(peripherals.GPIO13, Attenuation::_11dB); 
-    let mut vry_pin = adc2_config.enable_pin(peripherals.GPIO14, Attenuation::_11dB); 
-    let mut adc2 = Adc::new(peripherals.ADC2,adc2_config); 
-
+   
+    let mut joystick = joystick_init(peripherals.ADC2, peripherals.GPIO13, peripherals.GPIO14); 
     let mut prev_vrx: u16 = 0;
     let mut prev_vry: u16 = 0;
     let mut print_vals = true;   
+    let mut read_value_x: u16 = 0;
+    let mut read_value_y: u16 = 0;  
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
     
@@ -72,27 +71,24 @@ async fn main(spawner: Spawner) -> ! {
 
 
     loop {
-                let Ok(vry): Result<u16, _> = nb::block!(adc2.read_oneshot(&mut vry_pin)) else {
-            continue;
-        };
-        let Ok(vrx): Result<u16, _> = nb::block!(adc2.read_oneshot(&mut vrx_pin)) else {
-            continue;
-        };
+        
+        read_value_x = nb::block!(joystick.read_x()).unwrap(); 
+        read_value_y = nb::block!(joystick.read_y()).unwrap(); 
 
-        if vrx.abs_diff(prev_vrx) > 100 {
-            prev_vrx = vrx;
+        if read_value_x.abs_diff(prev_vrx) > 100 {
+            prev_vrx = read_value_x; 
             print_vals = true;
         }
 
-        if vry.abs_diff(prev_vry) > 100 {
-            prev_vry = vry;
+        if read_value_y.abs_diff(prev_vry) > 100 {
+            prev_vry = read_value_y;
             print_vals = true;
         }
 
         if print_vals {
             print_vals = false;
 
-            println!("X: {} Y: {}\r\n", vrx, vry);
+            println!("X: {} Y: {}\r\n", read_value_x, read_value_y);
         }
 
         Timer::after(Duration::from_millis(50)).await;
