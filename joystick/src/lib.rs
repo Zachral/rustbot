@@ -7,7 +7,9 @@ use esp_hal::{
     peripherals::ADC2,
 };
 
+#[derive(Debug, Clone, Copy)]
 pub struct AdcError;
+
 pub struct Joystick<'d, VRX, VRY> {
     adc: Adc<'d, ADC2<'d>, Blocking>,
     vrx: AdcPin<VRX, ADC2<'d>>,
