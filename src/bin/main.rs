@@ -7,33 +7,30 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use core::result::Result::Ok;
-use esp_hal::analog::adc::AdcConfig;
-use esp_hal::main; 
-use esp_hal::delay::Delay;
+use embassy_executor::Spawner;
+use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
-use embassy_executor::Spawner;
+use esp_hal::delay::Delay;
+use esp_hal::main;
 use esp_hal::timer::timg::TimerGroup;
-use embassy_time::{Duration, Timer};
 use esp_println::{self as _, println};
 
 use esp_hal::mcpwm::timer::{PeriodUpdatingMethod, PwmWorkingMode};
-use esp_hal::mcpwm::{PeripheralClockConfig,McPwm}; 
+use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
 use esp_hal::time::Rate;
-use joystick:: joystick_init; 
+use joystick::joystick_init;
 use servos::servo_init;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
 esp_bootloader_esp_idf::esp_app_desc!();
 
+const DEADZONE: u16 = 100;
 #[allow(
     clippy::large_stack_frames,
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
-
-
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> ! {
     // generator version: 1.4.0
@@ -48,18 +45,16 @@ async fn main(spawner: Spawner) -> ! {
     let mut pwm0 = McPwm::new(peripherals.MCPWM0, clock_cfg);
     //Servo setup
     let mut servo_1 = servo_init(pwm0.operator0, &pwm0.timer0, peripherals.GPIO33);
-    
+
     //joystick
-   
-    let mut joystick = joystick_init(peripherals.ADC2, peripherals.GPIO13, peripherals.GPIO14); 
+
+    let mut joystick = joystick_init(peripherals.ADC2, peripherals.GPIO13, peripherals.GPIO14);
     let mut prev_vrx: u16 = 0;
     let mut prev_vry: u16 = 0;
-    let mut print_vals = true;   
-    let mut read_value_x: u16 = 0;
-    let mut read_value_y: u16 = 0;  
+    let mut print_vals = true;
+
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
-    
 
     let _ = spawner;
     let timer_clock_cfg = clock_cfg
@@ -68,30 +63,27 @@ async fn main(spawner: Spawner) -> ! {
 
     pwm0.timer0.start(timer_clock_cfg);
 
-
-
     loop {
-        
-        read_value_x = nb::block!(joystick.read_x()).unwrap(); 
-        read_value_y = nb::block!(joystick.read_y()).unwrap(); 
-
-        if read_value_x.abs_diff(prev_vrx) > 100 {
-            prev_vrx = read_value_x; 
-            print_vals = true;
+        if let Ok(x) = joystick.read_x() {
+            if x.abs_diff(prev_vrx) > DEADZONE {
+                prev_vrx = x;
+                print_vals = true;
+            }
         }
 
-        if read_value_y.abs_diff(prev_vry) > 100 {
-            prev_vry = read_value_y;
-            print_vals = true;
+        if let Ok(y) = joystick.read_y() {
+            if y.abs_diff(prev_vry) > DEADZONE {
+                prev_vry = y;
+                print_vals = true;
+            }
         }
 
         if print_vals {
             print_vals = false;
 
-            println!("X: {} Y: {}\r\n", read_value_x, read_value_y);
+            println!("X: {} Y: {}\r\n", prev_vrx,prev_vry);
         }
 
         Timer::after(Duration::from_millis(50)).await;
     }
-
 }

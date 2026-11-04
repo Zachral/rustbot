@@ -4,5 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-esp-hal = { version = "~1.2.2", features = ["esp32", "log-04", "unstable"] }
+esp-hal = { version = "~1.2.2", features = ["esp32"] }
 nb = "1.1.0"

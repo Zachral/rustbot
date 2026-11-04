@@ -1427,7 +1427,6 @@ dependencies = [
  "esp-rtos",
  "joystick",
  "log",
- "nb 1.1.0",
  "servos",
  "static_cell",
 ]

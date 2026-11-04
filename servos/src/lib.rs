@@ -3,9 +3,9 @@
 use esp_hal::{
     gpio::interconnect::PeripheralOutput,
     mcpwm::{
+        PwmPeripheral,
         operator::{Operator, PwmPin, PwmPinConfig},
         timer::Timer,
-        PwmPeripheral,
     },
 };
 
