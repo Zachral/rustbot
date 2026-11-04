@@ -24,13 +24,14 @@ esp-backtrace = { version = "0.20.0", features = [
   "println",
 ] }
 esp-println = { version = "0.18.0", features = ["esp32", "log-04"] }
-
+  
 critical-section = "1.2.0"
 static_cell      = "2.1.1"
 servos = { path = "servos" }
+joystick = { path = "joystick"}
 
 [workspace]
-members = ["servos"]
+members = ["joystick","servos"]
 resolver = "3"
 
 
