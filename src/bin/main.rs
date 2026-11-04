@@ -12,14 +12,13 @@ use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
-use esp_hal::main;
 use esp_hal::timer::timg::TimerGroup;
 use esp_println::println;
 
 use esp_hal::mcpwm::timer::{PeriodUpdatingMethod, PwmWorkingMode};
 use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
 use esp_hal::time::Rate;
-use joystick::{AdcError, joystick_init};
+use joystick::joystick_init;
 use servos::servo_init;
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -49,14 +48,14 @@ async fn main(spawner: Spawner) -> ! {
     //joystick
 
     let mut joystick = joystick_init(peripherals.ADC2, peripherals.GPIO13, peripherals.GPIO14);
-    let mut prev_vrx: Result<u16, AdcError> = joystick.read_x();
-    let mut prev_vry: Result<u16, AdcError> = joystick.read_y();
+    let mut prev_vrx = joystick.read_x().unwrap_or(0);
+    let mut prev_vry = joystick.read_y().unwrap_or(0);
     let mut print_vals = true;
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
-    let _ = spawner;
+    let _spawner     = spawner;
     let timer_clock_cfg = clock_cfg
         .timer_clock_with_frequency(19_999, PwmWorkingMode::Increase, Rate::from_hz(50))
         .unwrap();
@@ -65,15 +64,15 @@ async fn main(spawner: Spawner) -> ! {
 
     loop {
         if let Ok(x) = joystick.read_x() {
-            if x.abs_diff(prev_vrx.expect("REASON")) > DEADZONE {
-                prev_vrx = Ok(x);
+            if x.abs_diff(prev_vrx) > DEADZONE {
+                prev_vrx = x;
                 print_vals = true;
             }
         }
 
         if let Ok(y) = joystick.read_y() {
-            if y.abs_diff(prev_vry.expect("REASON")) > DEADZONE {
-                prev_vry = Ok(y);
+            if y.abs_diff(prev_vry) > DEADZONE {
+                prev_vry = y;
                 print_vals = true;
             }
         }
