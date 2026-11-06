@@ -46,8 +46,10 @@ where
     }
 }
 
-fn run_servos_to_angle(servo_angle:i32) -> u32{
-    ((servo_angle - SERVO_MIN_DEGREE) as i32
+fn map_degree_to_pulsewidth(servo_angle:i32) -> u32{
+   let clamped =servo_angle.clamp(SERVO_MIN_DEGREE,SERVO_MAX_DEGREE):
+
+    ((clamped - SERVO_MIN_DEGREE) as i32
     * (SERVO_MAX_PULSEWIDTH_US as i32 -SERVO_MIN_PULSEWIDTH_US as i32)
     /(SERVO_MAX_DEGREE as i32 - SERVO_MIN_DEGREE as i32)
     + SERVO_MIN_PULSEWIDTH_US as i32) as u32

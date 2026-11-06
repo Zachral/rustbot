@@ -18,8 +18,8 @@ use esp_println::println;
 use esp_hal::mcpwm::timer::{PeriodUpdatingMethod, PwmWorkingMode};
 use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
 use esp_hal::time::Rate;
-use joystick::joystick_init;
-use servos::servo_init;
+use joystick::{joystick_init, map_joystick_raw_to_degree}; 
+use servos::{servo_init, map_degree_to_pulsewidth}; 
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -51,6 +51,7 @@ async fn main(spawner: Spawner) -> ! {
     let mut prev_vrx = joystick.read_x().unwrap_or(0);
     let mut prev_vry = joystick.read_y().unwrap_or(0);
     let mut print_vals = true;
+    let mut angle = 0; 
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
@@ -67,6 +68,8 @@ async fn main(spawner: Spawner) -> ! {
             if x.abs_diff(prev_vrx) > DEADZONE {
                 prev_vrx = x;
                 print_vals = true;
+              
+                servo_1.set_pulse_width(map_degree_to_pulsewidth(map_joystick_raw_to_degree(x)));
             }
         }
 
@@ -82,7 +85,7 @@ async fn main(spawner: Spawner) -> ! {
 
             println!("X: {:?} Y: {:?}", prev_vrx, prev_vry);
         }
-        servo_1.set_pulse_width(microseconds);
+        
         Timer::after(Duration::from_millis(50)).await;
     }
 }
