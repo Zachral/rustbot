@@ -6,9 +6,15 @@ use esp_hal::{
     gpio::AnalogPin,
     peripherals::ADC2,
 };
+use num_traits::float::FloatCore;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AdcError;
+
+const MIN_RAW_INPUT: i32 = 0;
+const MAX_RAW_INPUT: i32 = 4096;
+const MIN_DEGREE: i32 = 0;
+const MAX_DEGREE: i32 = 180;
 
 pub struct Joystick<'d, VRX, VRY> {
     adc: Adc<'d, ADC2<'d>, Blocking>,
@@ -49,4 +55,13 @@ where
     let adc = Adc::new(adc2, config);
 
     Joystick { adc, vrx, vry }
+}
+
+fn map_joystick_raw_to_degree(input: i32) -> i32 {
+    let degree = ((input as f32 - MIN_RAW_INPUT as f32)
+        / (MAX_RAW_INPUT as f32 - MIN_RAW_INPUT as f32))
+        * (MAX_DEGREE as f32 - MIN_DEGREE as f32)
+        + MIN_DEGREE as f32;
+
+    degree.round() as i32
 }

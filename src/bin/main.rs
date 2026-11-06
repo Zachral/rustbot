@@ -43,7 +43,7 @@ async fn main(spawner: Spawner) -> ! {
     let delay = Delay::new();
     let mut pwm0 = McPwm::new(peripherals.MCPWM0, clock_cfg);
     //Servo setup
-    let mut servo_1 = servo_init(pwm0.operator0, &pwm0.timer0, peripherals.GPIO33);
+    let servo_1 = servo_init(pwm0.operator0, &pwm0.timer0, peripherals.GPIO33);
 
     //joystick
 
@@ -82,7 +82,7 @@ async fn main(spawner: Spawner) -> ! {
 
             println!("X: {:?} Y: {:?}", prev_vrx, prev_vry);
         }
-
+        servo_1.set_pulse_width(microseconds);
         Timer::after(Duration::from_millis(50)).await;
     }
 }
