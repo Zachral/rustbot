@@ -9,6 +9,11 @@ use esp_hal::{
     },
 };
 
+const SERVO_MIN_DEGREE:i32 = 0;
+const SERVO_MAX_DEGREE:i32 = 180;
+const SERVO_MIN_PULSEWIDTH_US:i32 = 500;
+const SERVO_MAX_PULSEWIDTH_US:i32 = 2500;
+
 pub struct Servo<'d, PWM, const OP: u8>
 where
     PWM: PwmPeripheral,
@@ -39,4 +44,11 @@ where
     Servo {
         pwm_pin: operator.with_pin_a(pin, PwmPinConfig::UP_ACTIVE_HIGH),
     }
+}
+
+fn run_servos_to_angle(servo_angle:i32) -> u32{
+    ((servo_angle - SERVO_MIN_DEGREE) as i32
+    * (SERVO_MAX_PULSEWIDTH_US as i32 -SERVO_MIN_PULSEWIDTH_US as i32)
+    /(SERVO_MAX_DEGREE as i32 - SERVO_MIN_DEGREE as i32)
+    + SERVO_MIN_PULSEWIDTH_US as i32) as u32
 }
