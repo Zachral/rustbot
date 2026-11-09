@@ -9,8 +9,11 @@ use esp_hal::{
     },
 };
 
-pub const SERVO_MIN_DEGREE: i32 = 0;
-pub const SERVO_MAX_DEGREE: i32 = 180;
+use rustbot_common::{
+    SERVO_MIN_DEGREE,
+    SERVO_MAX_DEGREE
+};
+
 const SERVO_TS_MIN_PULSEWIDTH_US: i32 = 500;
 const SERVO_TS_MAX_PULSEWIDTH_US: i32 = 2500;
 const SERVO_MG_MIN_PULSEWIDTH_US: i32 = 400;

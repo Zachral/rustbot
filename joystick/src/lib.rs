@@ -6,10 +6,10 @@ use esp_hal::{
     gpio::AnalogPin,
     peripherals::ADC2,
 };
-use servos::{
-    SERVO_MAX_DEGREE,
-    SERVO_MIN_DEGREE
-}
+use rustbot_common::{
+    SERVO_MIN_DEGREE,
+    SERVO_MAX_DEGREE
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AdcError;
@@ -59,9 +59,8 @@ where
 }
 
 pub fn map_joystick_raw_to_degree(input: u16) -> i32 {
-    let mapped = (input.min(MAX_RAW_INPUT as u16) as i32)
-    * SERVO_MAX_DEGREE / MAX_RAW_INPUT; 
-      
+    let mapped = (input.min(MAX_RAW_INPUT as u16) as i32) * SERVO_MAX_DEGREE / MAX_RAW_INPUT;
+
     let degree = mapped.clamp(SERVO_MIN_DEGREE, SERVO_MAX_DEGREE);
     degree
 }
