@@ -6,6 +6,7 @@ use esp_hal::{
     gpio::AnalogPin,
     peripherals::ADC2,
 };
+use esp_println::println;
 use num_traits::float::FloatCore;
 
 #[derive(Debug, Clone, Copy)]
@@ -57,13 +58,14 @@ where
     Joystick { adc, vrx, vry }
 }
 
-fn map_joystick_raw_to_degree(input: i32) -> i32 {
+pub fn map_joystick_raw_to_degree(input: u16) -> i32 {
     let mapped = ((input as f32 - MIN_RAW_INPUT as f32)
         / (MAX_RAW_INPUT as f32 - MIN_RAW_INPUT as f32))
         * (MAX_DEGREE as f32 - MIN_DEGREE as f32)
         + MIN_DEGREE as f32;
 
-    let degree =mapped.round() as i32;
-    let degree = degree.clamp(MIN_DEGREE, MAX_DEGREE); 
+    let degree = mapped.round() as i32;
+    let degree = degree.clamp(MIN_DEGREE, MAX_DEGREE);
+    println!("degree: {:?} ", degree);
     degree
 }

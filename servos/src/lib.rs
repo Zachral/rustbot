@@ -9,10 +9,10 @@ use esp_hal::{
     },
 };
 
-const SERVO_MIN_DEGREE:i32 = 0;
-const SERVO_MAX_DEGREE:i32 = 180;
-const SERVO_MIN_PULSEWIDTH_US:i32 = 500;
-const SERVO_MAX_PULSEWIDTH_US:i32 = 2500;
+const SERVO_MIN_DEGREE: i32 = 0;
+const SERVO_MAX_DEGREE: i32 = 180;
+const SERVO_MIN_PULSEWIDTH_US: i32 = 500;
+const SERVO_MAX_PULSEWIDTH_US: i32 = 2500;
 
 pub struct Servo<'d, PWM, const OP: u8>
 where
@@ -46,11 +46,11 @@ where
     }
 }
 
-fn map_degree_to_pulsewidth(servo_angle:i32) -> u32{
-   let clamped =servo_angle.clamp(SERVO_MIN_DEGREE,SERVO_MAX_DEGREE):
+pub fn map_degree_to_pulsewidth(servo_angle: i32) -> u32 {
+    let clamped = servo_angle.clamp(SERVO_MIN_DEGREE, SERVO_MAX_DEGREE);
 
     ((clamped - SERVO_MIN_DEGREE) as i32
-    * (SERVO_MAX_PULSEWIDTH_US as i32 -SERVO_MIN_PULSEWIDTH_US as i32)
-    /(SERVO_MAX_DEGREE as i32 - SERVO_MIN_DEGREE as i32)
-    + SERVO_MIN_PULSEWIDTH_US as i32) as u32
+        * (SERVO_MAX_PULSEWIDTH_US as i32 - SERVO_MIN_PULSEWIDTH_US as i32)
+        / (SERVO_MAX_DEGREE as i32 - SERVO_MIN_DEGREE as i32)
+        + SERVO_MIN_PULSEWIDTH_US as i32) as u32
 }
