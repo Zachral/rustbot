@@ -6,16 +6,16 @@ use esp_hal::{
     gpio::AnalogPin,
     peripherals::ADC2,
 };
-use esp_println::println;
-use num_traits::float::FloatCore;
+use servos::{
+    SERVO_MAX_DEGREE,
+    SERVO_MIN_DEGREE
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct AdcError;
 
 const MIN_RAW_INPUT: i32 = 0;
-const MAX_RAW_INPUT: i32 = 4096;
-const MIN_DEGREE: i32 = 0;
-const MAX_DEGREE: i32 = 180;
+const MAX_RAW_INPUT: i32 = 4095;
 
 pub struct Joystick<'d, VRX, VRY> {
     adc: Adc<'d, ADC2<'d>, Blocking>,
@@ -59,13 +59,9 @@ where
 }
 
 pub fn map_joystick_raw_to_degree(input: u16) -> i32 {
-    let mapped = ((input as f32 - MIN_RAW_INPUT as f32)
-        / (MAX_RAW_INPUT as f32 - MIN_RAW_INPUT as f32))
-        * (MAX_DEGREE as f32 - MIN_DEGREE as f32)
-        + MIN_DEGREE as f32;
-
-    let degree = mapped.round() as i32;
-    let degree = degree.clamp(MIN_DEGREE, MAX_DEGREE);
-    println!("degree: {:?} ", degree);
+    let mapped = (input.min(MAX_RAW_INPUT as u16) as i32)
+    * SERVO_MAX_DEGREE / MAX_RAW_INPUT; 
+      
+    let degree = mapped.clamp(SERVO_MIN_DEGREE, SERVO_MAX_DEGREE);
     degree
 }

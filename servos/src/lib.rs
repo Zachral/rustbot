@@ -9,8 +9,8 @@ use esp_hal::{
     },
 };
 
-const SERVO_MIN_DEGREE: i32 = 0;
-const SERVO_MAX_DEGREE: i32 = 180;
+pub const SERVO_MIN_DEGREE: i32 = 0;
+pub const SERVO_MAX_DEGREE: i32 = 180;
 const SERVO_TS_MIN_PULSEWIDTH_US: i32 = 500;
 const SERVO_TS_MAX_PULSEWIDTH_US: i32 = 2500;
 const SERVO_MG_MIN_PULSEWIDTH_US: i32 = 400;
