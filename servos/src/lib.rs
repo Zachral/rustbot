@@ -11,14 +11,23 @@ use esp_hal::{
 
 const SERVO_MIN_DEGREE: i32 = 0;
 const SERVO_MAX_DEGREE: i32 = 180;
-const SERVO_MIN_PULSEWIDTH_US: i32 = 500;
-const SERVO_MAX_PULSEWIDTH_US: i32 = 2500;
+const SERVO_TS_MIN_PULSEWIDTH_US: i32 = 500;
+const SERVO_TS_MAX_PULSEWIDTH_US: i32 = 2500;
+const SERVO_MG_MIN_PULSEWIDTH_US: i32 = 700;
+const SERVO_MG_MAX_PULSEWIDTH_US: i32 = 2500;
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ServoType {
+    Ts90a,
+    Mg996r,
+}
 
 pub struct Servo<'d, PWM, const OP: u8>
 where
     PWM: PwmPeripheral,
 {
     pwm_pin: PwmPin<'d, PWM, OP, true>,
+    servo_type: ServoType,
 }
 
 impl<PWM, const OP: u8> Servo<'_, PWM, OP>
@@ -28,12 +37,17 @@ where
     pub fn set_pulse_width(&mut self, microseconds: u16) {
         self.pwm_pin.set_timestamp(microseconds);
     }
+
+    pub fn set_angle(&mut self, degrees: i32) {
+        self.set_pulse_width(map_degree_to_pulsewidth(self.servo_type, degrees) as u16);
+    }
 }
 
 pub fn servo_init<'d, PWM, const OP: u8, const TIM: u8, PIN>(
     mut operator: Operator<'d, OP, PWM>,
     timer: &Timer<TIM, PWM>,
     pin: PIN,
+    servo_type: ServoType,
 ) -> Servo<'d, PWM, OP>
 where
     PWM: PwmPeripheral + 'd,
@@ -43,14 +57,18 @@ where
 
     Servo {
         pwm_pin: operator.with_pin_a(pin, PwmPinConfig::UP_ACTIVE_HIGH),
+        servo_type,
     }
 }
 
-pub fn map_degree_to_pulsewidth(servo_angle: i32) -> u32 {
+pub fn map_degree_to_pulsewidth(servo_type: ServoType, servo_angle: i32) -> u32 {
     let clamped = servo_angle.clamp(SERVO_MIN_DEGREE, SERVO_MAX_DEGREE);
+    let (min_pulsewidth, max_pulsewidth) = match servo_type {
+        ServoType::Ts90a => (SERVO_TS_MIN_PULSEWIDTH_US, SERVO_TS_MAX_PULSEWIDTH_US),
+        ServoType::Mg996r => (SERVO_MG_MIN_PULSEWIDTH_US, SERVO_MG_MAX_PULSEWIDTH_US),
+    };
 
-    ((clamped - SERVO_MIN_DEGREE) as i32
-        * (SERVO_MAX_PULSEWIDTH_US as i32 - SERVO_MIN_PULSEWIDTH_US as i32)
+    ((clamped - SERVO_MIN_DEGREE) as i32 * (max_pulsewidth - min_pulsewidth)
         / (SERVO_MAX_DEGREE as i32 - SERVO_MIN_DEGREE as i32)
-        + SERVO_MIN_PULSEWIDTH_US as i32) as u32
+        + min_pulsewidth) as u32
 }

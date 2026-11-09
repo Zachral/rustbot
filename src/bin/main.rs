@@ -7,7 +7,7 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use embassy_executor::Spawner;
+use embassy_executor::{SpawnError, Spawner};
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
@@ -18,8 +18,8 @@ use esp_println::println;
 use esp_hal::mcpwm::timer::{PeriodUpdatingMethod, PwmWorkingMode};
 use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
 use esp_hal::time::Rate;
-use joystick::{joystick_init, map_joystick_raw_to_degree}; 
-use servos::{servo_init, map_degree_to_pulsewidth}; 
+use joystick::{joystick_init, map_joystick_raw_to_degree};
+use servos::{ServoType, servo_init};
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
 // For more information see: <https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/app_image_format.html#application-description>
@@ -43,20 +43,24 @@ async fn main(spawner: Spawner) -> ! {
     let delay = Delay::new();
     let mut pwm0 = McPwm::new(peripherals.MCPWM0, clock_cfg);
     //Servo setup
-    let servo_1 = servo_init(pwm0.operator0, &pwm0.timer0, peripherals.GPIO33);
+    let mut servo_1 = servo_init(
+        pwm0.operator0,
+        &pwm0.timer0,
+        peripherals.GPIO33,
+        ServoType::Mg996r,
+    );
 
     //joystick
 
-    let mut joystick = joystick_init(peripherals.ADC2, peripherals.GPIO13, peripherals.GPIO14);
+    let mut joystick = joystick_init(peripherals.ADC2, peripherals.GPIO14, peripherals.GPIO13);
     let mut prev_vrx = joystick.read_x().unwrap_or(0);
     let mut prev_vry = joystick.read_y().unwrap_or(0);
     let mut print_vals = true;
-    let mut angle = 0; 
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
     esp_rtos::start(timg0.timer0, peripherals.FROM_CPU_INTR0);
 
-    let _spawner     = spawner;
+    let _spawner = spawner;
     let timer_clock_cfg = clock_cfg
         .timer_clock_with_frequency(19_999, PwmWorkingMode::Increase, Rate::from_hz(50))
         .unwrap();
@@ -68,8 +72,7 @@ async fn main(spawner: Spawner) -> ! {
             if x.abs_diff(prev_vrx) > DEADZONE {
                 prev_vrx = x;
                 print_vals = true;
-              
-                servo_1.set_pulse_width(map_degree_to_pulsewidth(map_joystick_raw_to_degree(x)));
+                servo_1.set_angle(map_joystick_raw_to_degree(x));
             }
         }
 
@@ -85,7 +88,7 @@ async fn main(spawner: Spawner) -> ! {
 
             println!("X: {:?} Y: {:?}", prev_vrx, prev_vry);
         }
-        
+
         Timer::after(Duration::from_millis(50)).await;
     }
 }
