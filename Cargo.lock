@@ -1154,6 +1154,7 @@ version = "0.1.0"
 dependencies = [
  "esp-hal",
  "nb 1.1.0",
+ "rustbot-common",
 ]
 
 [[package]]
@@ -1432,6 +1433,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustbot-common"
+version = "0.1.0"
+
+[[package]]
 name = "rustversion"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1515,6 +1520,7 @@ name = "servos"
 version = "0.1.0"
 dependencies = [
  "esp-hal",
+ "rustbot-common",
 ]
 
 [[package]]
