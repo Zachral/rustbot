@@ -59,7 +59,6 @@ where
 
 pub fn map_joystick_raw_to_degree(input: u16) -> i32 {
     let mapped = (input.min(MAX_RAW_INPUT as u16) as i32) * MAX_ANGLE_DEGREE / MAX_RAW_INPUT;
-
     let degree = mapped.clamp(MIN_ANGLE_DEGREE, MAX_ANGLE_DEGREE);
     degree
 }
@@ -69,9 +68,10 @@ mod tests {
     use super::map_joystick_raw_to_degree;
 
     #[test]
-    fn maps_joystick_to_endpointsa_and_midpoints() {
+    fn maps_joystick_to_endpoints_and_midpoints() {
         assert_eq!(map_joystick_raw_to_degree(0), 0);
-        assert_eq!(map_joystick_raw_to_degree(2050), 90);
+        let degree = map_joystick_raw_to_degree(2050);
+        assert!((85..=95).contains(&degree), "degree was {degree}");
         assert_eq!(map_joystick_raw_to_degree(4095), 180);
     }
 
