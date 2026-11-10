@@ -7,11 +7,14 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
+use core::time;
+
 use embassy_executor::{SpawnError, Spawner};
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
 use esp_hal::delay::Delay;
+use esp_hal::peripherals::Peripherals;
 use esp_hal::timer::timg::TimerGroup;
 use esp_println::println;
 
@@ -50,6 +53,12 @@ async fn main(spawner: Spawner) -> ! {
         ServoType::Mg996r,
     );
 
+    let mut servo_2 = servo_init(
+        pwm0.operator1,
+        &pwm0.timer0,
+        peripherals.GPIO32, 
+        ServoType::Mg996r); 
+
     //joystick
 
     let mut joystick = joystick_init(peripherals.ADC2, peripherals.GPIO14, peripherals.GPIO13);
@@ -80,6 +89,7 @@ async fn main(spawner: Spawner) -> ! {
             if y.abs_diff(prev_vry) > DEADZONE {
                 prev_vry = y;
                 print_vals = true;
+                servo_2.set_angle(map_joystick_raw_to_degree(y));
             }
         }
 
