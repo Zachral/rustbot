@@ -63,7 +63,6 @@ pub fn map_joystick_raw_to_degree(input: u16) -> i32 {
     degree
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::map_joystick_raw_to_degree;
@@ -73,7 +72,6 @@ mod tests {
         assert_eq!(map_joystick_raw_to_degree(0), 0);
         assert_eq!(map_joystick_raw_to_degree(2050), 90);
         assert_eq!(map_joystick_raw_to_degree(4095), 180);
-
     }
 
     #[test]
