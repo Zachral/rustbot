@@ -56,8 +56,9 @@ async fn main(spawner: Spawner) -> ! {
     let mut servo_shoulder = servo_init(
         pwm0.operator1,
         &pwm0.timer0,
-        peripherals.GPIO32, 
-        ServoType::Mg996r); 
+        peripherals.GPIO32,
+        ServoType::Mg996r,
+    );
 
     //joystick
 

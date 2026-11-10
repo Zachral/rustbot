@@ -1,18 +1,6 @@
 #![no_std]
 
-use esp_hal::{
-    gpio::interconnect::PeripheralOutput,
-    mcpwm::{
-        PwmPeripheral,
-        operator::{Operator, PwmPin, PwmPinConfig},
-        timer::Timer,
-    },
-};
-
-use rustbot_common::{
-    SERVO_MIN_DEGREE,
-    SERVO_MAX_DEGREE
-};
+use rustbot_common::{MAX_ANGLE_DEGREE, MIN_ANGLE_DEGREE};
 
 const SERVO_TS_MIN_PULSEWIDTH_US: i32 = 500;
 const SERVO_TS_MAX_PULSEWIDTH_US: i32 = 2500;
@@ -25,6 +13,29 @@ pub enum ServoType {
     Mg996r,
 }
 
+pub fn map_degree_to_pulsewidth(servo_type: ServoType, servo_angle: i32) -> u32 {
+    let clamped = servo_angle.clamp(MIN_ANGLE_DEGREE, MAX_ANGLE_DEGREE);
+    let (min_pulsewidth, max_pulsewidth) = match servo_type {
+        ServoType::Ts90a => (SERVO_TS_MIN_PULSEWIDTH_US, SERVO_TS_MAX_PULSEWIDTH_US),
+        ServoType::Mg996r => (SERVO_MG_MIN_PULSEWIDTH_US, SERVO_MG_MAX_PULSEWIDTH_US),
+    };
+
+    ((clamped - MIN_ANGLE_DEGREE) * (max_pulsewidth - min_pulsewidth)
+        / (MAX_ANGLE_DEGREE - MIN_ANGLE_DEGREE)
+        + min_pulsewidth) as u32
+}
+
+#[cfg(feature = "esp32")]
+use esp_hal::{
+    gpio::interconnect::PeripheralOutput,
+    mcpwm::{
+        PwmPeripheral,
+        operator::{Operator, PwmPin, PwmPinConfig},
+        timer::Timer,
+    },
+};
+
+#[cfg(feature = "esp32")]
 pub struct Servo<'d, PWM, const OP: u8>
 where
     PWM: PwmPeripheral,
@@ -33,6 +44,7 @@ where
     servo_type: ServoType,
 }
 
+#[cfg(feature = "esp32")]
 impl<PWM, const OP: u8> Servo<'_, PWM, OP>
 where
     PWM: PwmPeripheral,
@@ -46,6 +58,7 @@ where
     }
 }
 
+#[cfg(feature = "esp32")]
 pub fn servo_init<'d, PWM, const OP: u8, const TIM: u8, PIN>(
     mut operator: Operator<'d, OP, PWM>,
     timer: &Timer<TIM, PWM>,
@@ -64,14 +77,24 @@ where
     }
 }
 
-pub fn map_degree_to_pulsewidth(servo_type: ServoType, servo_angle: i32) -> u32 {
-    let clamped = servo_angle.clamp(SERVO_MIN_DEGREE, SERVO_MAX_DEGREE);
-    let (min_pulsewidth, max_pulsewidth) = match servo_type {
-        ServoType::Ts90a => (SERVO_TS_MIN_PULSEWIDTH_US, SERVO_TS_MAX_PULSEWIDTH_US),
-        ServoType::Mg996r => (SERVO_MG_MIN_PULSEWIDTH_US, SERVO_MG_MAX_PULSEWIDTH_US),
-    };
+#[cfg(test)]
+mod tests {
+    use super::{ServoType, map_degree_to_pulsewidth};
 
-    ((clamped - SERVO_MIN_DEGREE) as i32 * (max_pulsewidth - min_pulsewidth)
-        / (SERVO_MAX_DEGREE as i32 - SERVO_MIN_DEGREE as i32)
-        + min_pulsewidth) as u32
+    #[test]
+    fn maps_servo_endpoints_and_midpoints() {
+        assert_eq!(map_degree_to_pulsewidth(ServoType::Ts90a, 0), 500);
+        assert_eq!(map_degree_to_pulsewidth(ServoType::Ts90a, 90), 1500);
+        assert_eq!(map_degree_to_pulsewidth(ServoType::Ts90a, 180), 2500);
+
+        assert_eq!(map_degree_to_pulsewidth(ServoType::Mg996r, 0), 400);
+        assert_eq!(map_degree_to_pulsewidth(ServoType::Mg996r, 90), 1450);
+        assert_eq!(map_degree_to_pulsewidth(ServoType::Mg996r, 180), 2500);
+    }
+
+    #[test]
+    fn clamps_angles_to_supported_range() {
+        assert_eq!(map_degree_to_pulsewidth(ServoType::Mg996r, -1), 400);
+        assert_eq!(map_degree_to_pulsewidth(ServoType::Mg996r, 181), 2500);
+    }
 }
