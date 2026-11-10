@@ -46,14 +46,14 @@ async fn main(spawner: Spawner) -> ! {
     let delay = Delay::new();
     let mut pwm0 = McPwm::new(peripherals.MCPWM0, clock_cfg);
     //Servo setup
-    let mut servo_1 = servo_init(
+    let mut servo_waist = servo_init(
         pwm0.operator0,
         &pwm0.timer0,
         peripherals.GPIO33,
         ServoType::Mg996r,
     );
 
-    let mut servo_2 = servo_init(
+    let mut servo_shoulder = servo_init(
         pwm0.operator1,
         &pwm0.timer0,
         peripherals.GPIO32, 
@@ -81,7 +81,7 @@ async fn main(spawner: Spawner) -> ! {
             if x.abs_diff(prev_vrx) > DEADZONE {
                 prev_vrx = x;
                 print_vals = true;
-                servo_1.set_angle(map_joystick_raw_to_degree(x));
+                servo_waist.set_angle(map_joystick_raw_to_degree(x));
             }
         }
 
@@ -89,7 +89,7 @@ async fn main(spawner: Spawner) -> ! {
             if y.abs_diff(prev_vry) > DEADZONE {
                 prev_vry = y;
                 print_vals = true;
-                servo_2.set_angle(map_joystick_raw_to_degree(y));
+                servo_shoulder.set_angle(map_joystick_raw_to_degree(y));
             }
         }
 
