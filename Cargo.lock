@@ -1418,7 +1418,6 @@ dependencies = [
 name = "rustbot"
 version = "0.1.0"
 dependencies = [
- "critical-section",
  "embassy-executor",
  "embassy-time",
  "esp-backtrace",
@@ -1427,9 +1426,7 @@ dependencies = [
  "esp-println",
  "esp-rtos",
  "joystick",
- "log",
  "servos",
- "static_cell",
 ]
 
 [[package]]

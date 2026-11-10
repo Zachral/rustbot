@@ -7,18 +7,14 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use core::time;
-
-use embassy_executor::{SpawnError, Spawner};
+use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
-use esp_hal::delay::Delay;
-use esp_hal::peripherals::Peripherals;
 use esp_hal::timer::timg::TimerGroup;
 use esp_println::println;
 
-use esp_hal::mcpwm::timer::{PeriodUpdatingMethod, PwmWorkingMode};
+use esp_hal::mcpwm::timer::PwmWorkingMode;
 use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
 use esp_hal::time::Rate;
 use joystick::{joystick_init, map_joystick_raw_to_degree};
@@ -43,7 +39,6 @@ async fn main(spawner: Spawner) -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
     let clock_cfg = PeripheralClockConfig::with_frequency(Rate::from_mhz(32)).unwrap();
-    let delay = Delay::new();
     let mut pwm0 = McPwm::new(peripherals.MCPWM0, clock_cfg);
     //Servo setup
     let mut servo_waist = servo_init(

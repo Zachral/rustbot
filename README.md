@@ -23,7 +23,7 @@ cargo run
 monitor. 
 
 
-To run unit test on algoritms move move out of the working directory and run a testsuit witout compiling the esp32 board dependecies 
+To run unit tests on algoritms move out of the working directory and run a test suit, witout needing compiling the esp32 board dependecies 
 ```sh
 cd /tmp
  cargo +stable test --manifest-path <path-to-cargo.toml> -p servos -p joystick --no-default-features

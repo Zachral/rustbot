@@ -11,7 +11,6 @@ use rustbot_common::{MAX_ANGLE_DEGREE, MIN_ANGLE_DEGREE};
 #[derive(Debug, Clone, Copy)]
 pub struct AdcError;
 
-const MIN_RAW_INPUT: i32 = 0;
 const MAX_RAW_INPUT: i32 = 4095;
 
 #[cfg(feature = "esp32")]
