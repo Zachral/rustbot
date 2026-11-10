@@ -7,15 +7,14 @@
 )]
 #![deny(clippy::large_stack_frames)]
 
-use embassy_executor::{SpawnError, Spawner};
+use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
-use esp_hal::delay::Delay;
 use esp_hal::timer::timg::TimerGroup;
 use esp_println::println;
 
-use esp_hal::mcpwm::timer::{PeriodUpdatingMethod, PwmWorkingMode};
+use esp_hal::mcpwm::timer::PwmWorkingMode;
 use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
 use esp_hal::time::Rate;
 use joystick::{joystick_init, map_joystick_raw_to_degree};
@@ -40,13 +39,19 @@ async fn main(spawner: Spawner) -> ! {
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
     let clock_cfg = PeripheralClockConfig::with_frequency(Rate::from_mhz(32)).unwrap();
-    let delay = Delay::new();
     let mut pwm0 = McPwm::new(peripherals.MCPWM0, clock_cfg);
     //Servo setup
-    let mut servo_1 = servo_init(
+    let mut servo_waist = servo_init(
         pwm0.operator0,
         &pwm0.timer0,
         peripherals.GPIO33,
+        ServoType::Mg996r,
+    );
+
+    let mut servo_shoulder = servo_init(
+        pwm0.operator1,
+        &pwm0.timer0,
+        peripherals.GPIO32,
         ServoType::Mg996r,
     );
 
@@ -72,7 +77,7 @@ async fn main(spawner: Spawner) -> ! {
             if x.abs_diff(prev_vrx) > DEADZONE {
                 prev_vrx = x;
                 print_vals = true;
-                servo_1.set_angle(map_joystick_raw_to_degree(x));
+                servo_waist.set_angle(map_joystick_raw_to_degree(x));
             }
         }
 
@@ -80,6 +85,7 @@ async fn main(spawner: Spawner) -> ! {
             if y.abs_diff(prev_vry) > DEADZONE {
                 prev_vry = y;
                 print_vals = true;
+                servo_shoulder.set_angle(map_joystick_raw_to_degree(y));
             }
         }
 

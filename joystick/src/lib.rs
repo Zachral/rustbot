@@ -1,28 +1,26 @@
 #![no_std]
 
+#[cfg(feature = "esp32")]
 use esp_hal::{
     Blocking,
     analog::adc::{Adc, AdcChannel, AdcConfig, AdcPin, Attenuation},
     gpio::AnalogPin,
     peripherals::ADC2,
 };
-use rustbot_common::{
-    SERVO_MIN_DEGREE,
-    SERVO_MAX_DEGREE
-};
+use rustbot_common::{MAX_ANGLE_DEGREE, MIN_ANGLE_DEGREE};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AdcError;
 
-const MIN_RAW_INPUT: i32 = 0;
 const MAX_RAW_INPUT: i32 = 4095;
 
+#[cfg(feature = "esp32")]
 pub struct Joystick<'d, VRX, VRY> {
     adc: Adc<'d, ADC2<'d>, Blocking>,
     vrx: AdcPin<VRX, ADC2<'d>>,
     vry: AdcPin<VRY, ADC2<'d>>,
 }
-
+#[cfg(feature = "esp32")]
 impl<'d, VRX, VRY> Joystick<'d, VRX, VRY>
 where
     VRX: AdcChannel,
@@ -41,6 +39,7 @@ where
     }
 }
 
+#[cfg(feature = "esp32")]
 pub fn joystick_init<'d, VRX, VRY>(
     adc2: ADC2<'d>,
     vrx_pin: VRX,
@@ -59,8 +58,25 @@ where
 }
 
 pub fn map_joystick_raw_to_degree(input: u16) -> i32 {
-    let mapped = (input.min(MAX_RAW_INPUT as u16) as i32) * SERVO_MAX_DEGREE / MAX_RAW_INPUT;
-
-    let degree = mapped.clamp(SERVO_MIN_DEGREE, SERVO_MAX_DEGREE);
+    let mapped = (input.min(MAX_RAW_INPUT as u16) as i32) * MAX_ANGLE_DEGREE / MAX_RAW_INPUT;
+    let degree = mapped.clamp(MIN_ANGLE_DEGREE, MAX_ANGLE_DEGREE);
     degree
+}
+
+#[cfg(test)]
+mod tests {
+    use super::map_joystick_raw_to_degree;
+
+    #[test]
+    fn maps_joystick_to_endpoints_and_midpoints() {
+        assert_eq!(map_joystick_raw_to_degree(0), 0);
+        let degree = map_joystick_raw_to_degree(2050);
+        assert!((85..=95).contains(&degree), "degree was {degree}");
+        assert_eq!(map_joystick_raw_to_degree(4095), 180);
+    }
+
+    #[test]
+    fn clamps_input_to_supported_range() {
+        assert_eq!(map_joystick_raw_to_degree(4096), 180);
+    }
 }

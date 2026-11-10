@@ -20,8 +20,14 @@ cargo run
 ```
 
 `cargo run` builds, flashes the connected ESP32 over serial, and opens the serial
-monitor. The generated starter firmware logs a message once per second; servo
-and joystick control are not implemented yet.
+monitor. 
+
+
+To run unit tests on algorithms move out of the working directory and run a test suite, without needing compiling the esp32 board dependencies 
+```sh
+ cargo +stable test --manifest-path <path-to-cargo.toml> -p servos -p joystick --no-default-features
+
+```
 
 The project is based on this:
 https://howtomechatronics.com/tutorials/arduino/diy-arduino-robot-arm-with-smartphone-control/

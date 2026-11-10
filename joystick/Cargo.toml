@@ -3,7 +3,11 @@ name = "joystick"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["esp32"]
+esp32 = ["dep:esp-hal"]
+
 [dependencies]
-esp-hal = { version = "~1.2.2", features = ["esp32"] }
+esp-hal = { version = "~1.2.2", features = ["esp32"],  optional = true }
 nb = "1.1.0"
 rustbot-common = {path = "../rustbot-common"}
