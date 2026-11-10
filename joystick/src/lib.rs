@@ -1,4 +1,5 @@
 #![no_std]
+
 #[cfg(feature = "esp32")]
 use esp_hal::{
     Blocking,

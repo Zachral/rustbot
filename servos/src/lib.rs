@@ -13,18 +13,6 @@ pub enum ServoType {
     Mg996r,
 }
 
-pub fn map_degree_to_pulsewidth(servo_type: ServoType, servo_angle: i32) -> u32 {
-    let clamped = servo_angle.clamp(MIN_ANGLE_DEGREE, MAX_ANGLE_DEGREE);
-    let (min_pulsewidth, max_pulsewidth) = match servo_type {
-        ServoType::Ts90a => (SERVO_TS_MIN_PULSEWIDTH_US, SERVO_TS_MAX_PULSEWIDTH_US),
-        ServoType::Mg996r => (SERVO_MG_MIN_PULSEWIDTH_US, SERVO_MG_MAX_PULSEWIDTH_US),
-    };
-
-    ((clamped - MIN_ANGLE_DEGREE) * (max_pulsewidth - min_pulsewidth)
-        / (MAX_ANGLE_DEGREE - MIN_ANGLE_DEGREE)
-        + min_pulsewidth) as u32
-}
-
 #[cfg(feature = "esp32")]
 use esp_hal::{
     gpio::interconnect::PeripheralOutput,
@@ -75,6 +63,18 @@ where
         pwm_pin: operator.with_pin_a(pin, PwmPinConfig::UP_ACTIVE_HIGH),
         servo_type,
     }
+}
+
+pub fn map_degree_to_pulsewidth(servo_type: ServoType, servo_angle: i32) -> u32 {
+    let clamped = servo_angle.clamp(MIN_ANGLE_DEGREE, MAX_ANGLE_DEGREE);
+    let (min_pulsewidth, max_pulsewidth) = match servo_type {
+        ServoType::Ts90a => (SERVO_TS_MIN_PULSEWIDTH_US, SERVO_TS_MAX_PULSEWIDTH_US),
+        ServoType::Mg996r => (SERVO_MG_MIN_PULSEWIDTH_US, SERVO_MG_MAX_PULSEWIDTH_US),
+    };
+
+    ((clamped - MIN_ANGLE_DEGREE) * (max_pulsewidth - min_pulsewidth)
+        / (MAX_ANGLE_DEGREE - MIN_ANGLE_DEGREE)
+        + min_pulsewidth) as u32
 }
 
 #[cfg(test)]
