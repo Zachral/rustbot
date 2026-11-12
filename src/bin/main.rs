@@ -62,6 +62,13 @@ async fn main(spawner: Spawner) -> ! {
         ServoType::Mg996r,
     );
 
+    let mut servo_elbow = servo_init(
+        pwm0.operator2,
+        &pwm0.timer0,
+        peripherals.GPIO25,
+        ServoType::Mg996r,
+    );
+
     //joystick
 
     let mut joysticks = joystick_controller_init(
@@ -122,6 +129,12 @@ async fn main(spawner: Spawner) -> ! {
             {
                 servo_waist.set_angle(map_joystick_raw_to_degree(joystick_readings.right_y));
                 previous_readings.right_y = joystick_readings.right_y;
+                print_vals = true;
+            }
+
+            if previous_readings.left_y.abs_diff(joystick_readings.left_y) > DEADZONE {
+                servo_elbow.set_angle(map_joystick_raw_to_degree(joystick_readings.left_y));
+                previous_readings.left_y = joystick_readings.left_y;
                 print_vals = true;
             }
 
