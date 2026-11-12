@@ -69,8 +69,8 @@ async fn main(spawner: Spawner) -> ! {
         peripherals.GPIO34,
         peripherals.GPIO35,
         //inverted x and y pins due how the joystick is constructed to fit nicely in the hand
-        peripherals.GPIO33,
         peripherals.GPIO32,
+        peripherals.GPIO33,
     );
 
     let mut print_vals = true;
@@ -111,7 +111,7 @@ async fn main(spawner: Spawner) -> ! {
                 .abs_diff(joystick_readings.right_x)
                 > DEADZONE
             {
-                servo_waist.set_angle(map_joystick_raw_to_degree(joystick_readings.right_x));
+                servo_shoulder.set_angle(map_joystick_raw_to_degree(joystick_readings.right_x));
                 previous_readings.right_x = joystick_readings.right_x;
                 print_vals = true;
             }
@@ -121,7 +121,7 @@ async fn main(spawner: Spawner) -> ! {
                 .abs_diff(joystick_readings.right_y)
                 > DEADZONE
             {
-                servo_shoulder.set_angle(map_joystick_raw_to_degree(joystick_readings.right_y));
+                servo_waist.set_angle(map_joystick_raw_to_degree(joystick_readings.right_y));
                 previous_readings.right_y = joystick_readings.right_y;
                 print_vals = true;
             }
