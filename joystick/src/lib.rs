@@ -5,7 +5,7 @@ use esp_hal::{
     Blocking,
     analog::adc::{Adc, AdcChannel, AdcConfig, AdcPin, Attenuation},
     gpio::AnalogPin,
-    peripherals::ADC2,
+    peripherals::ADC1,
 };
 use rustbot_common::{MAX_ANGLE_DEGREE, MIN_ANGLE_DEGREE};
 
@@ -15,46 +15,67 @@ pub struct AdcError;
 const MAX_RAW_INPUT: i32 = 4095;
 
 #[cfg(feature = "esp32")]
-pub struct Joystick<'d, VRX, VRY> {
-    adc: Adc<'d, ADC2<'d>, Blocking>,
-    vrx: AdcPin<VRX, ADC2<'d>>,
-    vry: AdcPin<VRY, ADC2<'d>>,
+pub struct JoystickReadings {
+    pub left_x: u16,
+    pub left_y: u16,
+    pub right_x: u16,
+    pub right_y: u16,
 }
-#[cfg(feature = "esp32")]
-impl<'d, VRX, VRY> Joystick<'d, VRX, VRY>
-where
-    VRX: AdcChannel,
-    VRY: AdcChannel,
-{
-    pub fn read_x(&mut self) -> Result<u16, AdcError> {
-        nb::block!(self.adc.read_oneshot(&mut self.vrx)).map_err(|_| AdcError)
-    }
 
-    pub fn read_y(&mut self) -> Result<u16, AdcError> {
-        nb::block!(self.adc.read_oneshot(&mut self.vry)).map_err(|_| AdcError)
-    }
-
-    pub fn read(&mut self) -> Result<(u16, u16), AdcError> {
-        Ok((self.read_x()?, self.read_y()?))
-    }
+pub struct JoystickController<'d, LX, LY, RX, RY> {
+    adc: Adc<'d, ADC1<'d>, Blocking>,
+    left_x: AdcPin<LX, ADC1<'d>>,
+    left_y: AdcPin<LY, ADC1<'d>>,
+    right_x: AdcPin<RX, ADC1<'d>>,
+    right_y: AdcPin<RY, ADC1<'d>>,
 }
 
 #[cfg(feature = "esp32")]
-pub fn joystick_init<'d, VRX, VRY>(
-    adc2: ADC2<'d>,
-    vrx_pin: VRX,
-    vry_pin: VRY,
-) -> Joystick<'d, VRX, VRY>
+impl<'d, LX, LY, RX, RY> JoystickController<'d, LX, LY, RX, RY>
 where
-    VRX: AdcChannel + AnalogPin,
-    VRY: AdcChannel + AnalogPin,
+    LX: AdcChannel,
+    LY: AdcChannel,
+    RX: AdcChannel,
+    RY: AdcChannel,
 {
-    let mut config = AdcConfig::<ADC2>::new();
-    let vrx = config.enable_pin(vrx_pin, Attenuation::_11dB);
-    let vry = config.enable_pin(vry_pin, Attenuation::_11dB);
-    let adc = Adc::new(adc2, config);
+    pub fn read(&mut self) -> Result<JoystickReadings, AdcError> {
+        Ok(JoystickReadings {
+            left_x: nb::block!(self.adc.read_oneshot(&mut self.left_x)).map_err(|_| AdcError)?,
+            left_y: nb::block!(self.adc.read_oneshot(&mut self.left_y)).map_err(|_| AdcError)?,
+            right_x: nb::block!(self.adc.read_oneshot(&mut self.right_x)).map_err(|_| AdcError)?,
+            right_y: nb::block!(self.adc.read_oneshot(&mut self.right_y)).map_err(|_| AdcError)?,
+        })
+    }
+}
 
-    Joystick { adc, vrx, vry }
+#[cfg(feature = "esp32")]
+pub fn joystick_controller_init<'d, LX, LY, RX, RY>(
+    adc1: ADC1<'d>,
+    left_x_pin: LX,
+    left_y_pin: LY,
+    right_x_pin: RX,
+    right_y_pin: RY,
+) -> JoystickController<'d, LX, LY, RX, RY>
+where
+    LX: AdcChannel + AnalogPin,
+    LY: AdcChannel + AnalogPin,
+    RX: AdcChannel + AnalogPin,
+    RY: AdcChannel + AnalogPin,
+{
+    let mut config = AdcConfig::<ADC1>::new();
+    let left_x = config.enable_pin(left_x_pin, Attenuation::_11dB);
+    let left_y = config.enable_pin(left_y_pin, Attenuation::_11dB);
+    let right_x = config.enable_pin(right_x_pin, Attenuation::_11dB);
+    let right_y = config.enable_pin(right_y_pin, Attenuation::_11dB);
+    let adc = Adc::new(adc1, config);
+
+    JoystickController {
+        adc,
+        left_x,
+        left_y,
+        right_x,
+        right_y,
+    }
 }
 
 pub fn map_joystick_raw_to_degree(input: u16) -> i32 {

@@ -17,7 +17,7 @@ use esp_println::println;
 use esp_hal::mcpwm::timer::PwmWorkingMode;
 use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
 use esp_hal::time::Rate;
-use joystick::{joystick_init, map_joystick_raw_to_degree};
+use joystick::{AdcError, joystick_controller_init, map_joystick_raw_to_degree};
 use servos::{ServoType, servo_init};
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -29,6 +29,13 @@ const DEADZONE: u16 = 50;
     clippy::large_stack_frames,
     reason = "it's not unusual to allocate larger buffers etc. in main"
 )]
+
+struct PreviousReadings {
+    left_x: u16,
+    left_y: u16,
+    right_x: u16,
+    right_y: u16,
+}
 #[esp_rtos::main]
 async fn main(spawner: Spawner) -> ! {
     // generator version: 1.4.0
@@ -44,22 +51,27 @@ async fn main(spawner: Spawner) -> ! {
     let mut servo_waist = servo_init(
         pwm0.operator0,
         &pwm0.timer0,
-        peripherals.GPIO33,
+        peripherals.GPIO26,
         ServoType::Mg996r,
     );
 
     let mut servo_shoulder = servo_init(
         pwm0.operator1,
         &pwm0.timer0,
-        peripherals.GPIO32,
+        peripherals.GPIO27,
         ServoType::Mg996r,
     );
 
     //joystick
 
-    let mut joystick = joystick_init(peripherals.ADC2, peripherals.GPIO14, peripherals.GPIO13);
-    let mut prev_vrx = joystick.read_x().unwrap_or(0);
-    let mut prev_vry = joystick.read_y().unwrap_or(0);
+    let mut joysticks = joystick_controller_init(
+        peripherals.ADC1,
+        peripherals.GPIO34,
+        peripherals.GPIO35,
+        peripherals.GPIO32,
+        peripherals.GPIO33,
+    );
+
     let mut print_vals = true;
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
@@ -72,28 +84,56 @@ async fn main(spawner: Spawner) -> ! {
 
     pwm0.timer0.start(timer_clock_cfg);
 
+    let first_read = loop {
+        match joysticks.read() {
+            Ok(readings) => break readings,
+            Err(_) => {
+                println!("Initial joystick ADC read failed; retrying");
+                Timer::after(Duration::from_millis(100)).await;
+            }
+        };
+    };
+
+    let previous_readings = PreviousReadings {
+        left_x: first_read.left_x,
+        left_y: first_read.left_y,
+        right_x: first_read.right_x,
+        right_y: first_read.right_y,
+    };
+
     loop {
-        if let Ok(x) = joystick.read_x() {
-            if x.abs_diff(prev_vrx) > DEADZONE {
-                prev_vrx = x;
-                print_vals = true;
-                servo_waist.set_angle(map_joystick_raw_to_degree(x));
+        if let Ok(joystick_readings) = joysticks.read() {
+            // samples.left_x, samples.left_y, samples.right_x, samples.right_y
+
+            if previous_readings.left_x.abs_diff(joystick_readings.left_x) > DEADZONE
+                || previous_readings.left_y.abs_diff(joystick_readings.left_y) > DEADZONE
+                || previous_readings
+                    .right_x
+                    .abs_diff(joystick_readings.right_x)
+                    > DEADZONE
+                || previous_readings
+                    .right_y
+                    .abs_diff(joystick_readings.right_y)
+                    > DEADZONE
+            {
+                println!(
+                    "left_x: {:?}
+                            left_y: {:?}
+                            right_x: {:?}
+                            right_y: {:?}",
+                    joystick_readings.left_x,
+                    joystick_readings.left_y,
+                    joystick_readings.right_x,
+                    joystick_readings.right_y
+                );
             }
         }
 
-        if let Ok(y) = joystick.read_y() {
-            if y.abs_diff(prev_vry) > DEADZONE {
-                prev_vry = y;
-                print_vals = true;
-                servo_shoulder.set_angle(map_joystick_raw_to_degree(y));
-            }
-        }
+        // if print_vals {
+        //     print_vals = false;
 
-        if print_vals {
-            print_vals = false;
-
-            println!("X: {:?} Y: {:?}", prev_vrx, prev_vry);
-        }
+        //     println!("X_Right: {:?} Y_Rightt: {:?}/n", prev_vrx_right, prev_vry_right);
+        // }
 
         Timer::after(Duration::from_millis(50)).await;
     }
