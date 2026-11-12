@@ -68,8 +68,9 @@ async fn main(spawner: Spawner) -> ! {
         peripherals.ADC1,
         peripherals.GPIO34,
         peripherals.GPIO35,
-        peripherals.GPIO32,
+        //inverted x and y pins due how the joystick is constructed to fit nicely in the hand
         peripherals.GPIO33,
+        peripherals.GPIO32,
     );
 
     let mut print_vals = true;
@@ -94,7 +95,7 @@ async fn main(spawner: Spawner) -> ! {
         };
     };
 
-    let previous_readings = PreviousReadings {
+    let mut previous_readings = PreviousReadings {
         left_x: first_read.left_x,
         left_y: first_read.left_y,
         right_x: first_read.right_x,
@@ -105,22 +106,34 @@ async fn main(spawner: Spawner) -> ! {
         if let Ok(joystick_readings) = joysticks.read() {
             // samples.left_x, samples.left_y, samples.right_x, samples.right_y
 
-            if previous_readings.left_x.abs_diff(joystick_readings.left_x) > DEADZONE
-                || previous_readings.left_y.abs_diff(joystick_readings.left_y) > DEADZONE
-                || previous_readings
-                    .right_x
-                    .abs_diff(joystick_readings.right_x)
-                    > DEADZONE
-                || previous_readings
-                    .right_y
-                    .abs_diff(joystick_readings.right_y)
-                    > DEADZONE
+            if previous_readings
+                .right_x
+                .abs_diff(joystick_readings.right_x)
+                > DEADZONE
             {
+                servo_waist.set_angle(map_joystick_raw_to_degree(joystick_readings.right_x));
+                previous_readings.right_x = joystick_readings.right_x;
+                print_vals = true;
+            }
+
+            if previous_readings
+                .right_y
+                .abs_diff(joystick_readings.right_y)
+                > DEADZONE
+            {
+                servo_shoulder.set_angle(map_joystick_raw_to_degree(joystick_readings.right_y));
+                previous_readings.right_y = joystick_readings.right_y;
+                print_vals = true;
+            }
+
+            if print_vals {
+                print_vals = false;
+
                 println!(
                     "left_x: {:?}
-                            left_y: {:?}
-                            right_x: {:?}
-                            right_y: {:?}",
+                    left_y: {:?}
+                    right_x: {:?}
+                    right_y: {:?}",
                     joystick_readings.left_x,
                     joystick_readings.left_y,
                     joystick_readings.right_x,
@@ -128,12 +141,6 @@ async fn main(spawner: Spawner) -> ! {
                 );
             }
         }
-
-        // if print_vals {
-        //     print_vals = false;
-
-        //     println!("X_Right: {:?} Y_Rightt: {:?}/n", prev_vrx_right, prev_vry_right);
-        // }
 
         Timer::after(Duration::from_millis(50)).await;
     }
