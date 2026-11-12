@@ -22,6 +22,7 @@ pub struct JoystickReadings {
     pub right_y: u16,
 }
 
+#[cfg(feature = "esp32")]
 pub struct JoystickController<'d, LX, LY, RX, RY> {
     adc: Adc<'d, ADC1<'d>, Blocking>,
     left_x: AdcPin<LX, ADC1<'d>>,

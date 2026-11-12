@@ -68,7 +68,6 @@ async fn main(spawner: Spawner) -> ! {
         peripherals.ADC1,
         peripherals.GPIO34,
         peripherals.GPIO35,
-        //inverted x and y pins due how the joystick is constructed to fit nicely in the hand
         peripherals.GPIO32,
         peripherals.GPIO33,
     );
