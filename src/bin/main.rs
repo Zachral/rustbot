@@ -117,7 +117,6 @@ async fn main(spawner: Spawner) -> ! {
     };
 
     loop {
-
         if let Ok(joystick_readings) = joysticks.read() {
             // samples.left_x, samples.left_y, samples.right_x, samples.right_y
 
@@ -141,13 +140,21 @@ async fn main(spawner: Spawner) -> ! {
                 print_vals = true;
             }
 
-            if previous_readings.left_y.abs_diff(joystick_readings.left_y) > DEADZONE {
+            if previous_readings
+                .left_y
+                .abs_diff(joystick_readings.left_y) 
+                > DEADZONE 
+            {
                 servo_elbow.set_angle(map_joystick_raw_to_degree(joystick_readings.left_y));
                 previous_readings.left_y = joystick_readings.left_y;
                 print_vals = true;
             }
 
-            if previous_readings.left_x.abs_diff(joystick_readings.left_x) > DEADZONE {
+            if previous_readings
+                .left_x
+                .abs_diff(joystick_readings.left_x) 
+                > DEADZONE 
+            {
                 servo_wrist_pitch.set_angle(map_joystick_raw_to_degree(joystick_readings.left_x));
                 previous_readings.left_x = joystick_readings.left_x;
                 print_vals = true;
@@ -163,7 +170,7 @@ async fn main(spawner: Spawner) -> ! {
                     right_y: {:?}",
                     joystick_readings.left_x,
                     joystick_readings.left_y,
-                    joystick_readings.right_x, 
+                    joystick_readings.right_x,
                     joystick_readings.right_y
                 );
             }
