@@ -47,6 +47,7 @@ async fn main(spawner: Spawner) -> ! {
     let peripherals = esp_hal::init(config);
     let clock_cfg = PeripheralClockConfig::with_frequency(Rate::from_mhz(32)).unwrap();
     let mut pwm0 = McPwm::new(peripherals.MCPWM0, clock_cfg);
+    let mut pwm1 = McPwm::new(peripherals.MCPWM1, clock_cfg);
     //Servo setup
     let mut servo_waist = servo_init(
         pwm0.operator0,
@@ -62,6 +63,19 @@ async fn main(spawner: Spawner) -> ! {
         ServoType::Mg996r,
     );
 
+    let mut servo_elbow = servo_init(
+        pwm0.operator2,
+        &pwm0.timer0,
+        peripherals.GPIO25,
+        ServoType::Mg996r,
+    );
+
+    let mut servo_wrist_pitch = servo_init(
+        pwm1.operator0,
+        &pwm1.timer0,
+        peripherals.GPIO22,
+        ServoType::Ts90a,
+    );
     //joystick
 
     let mut joysticks = joystick_controller_init(
@@ -83,6 +97,7 @@ async fn main(spawner: Spawner) -> ! {
         .unwrap();
 
     pwm0.timer0.start(timer_clock_cfg);
+    pwm1.timer0.start(timer_clock_cfg);
 
     let first_read = loop {
         match joysticks.read() {
@@ -122,6 +137,26 @@ async fn main(spawner: Spawner) -> ! {
             {
                 servo_waist.set_angle(map_joystick_raw_to_degree(joystick_readings.right_y));
                 previous_readings.right_y = joystick_readings.right_y;
+                print_vals = true;
+            }
+
+            if previous_readings
+                .left_y
+                .abs_diff(joystick_readings.left_y) 
+                > DEADZONE 
+            {
+                servo_elbow.set_angle(map_joystick_raw_to_degree(joystick_readings.left_y));
+                previous_readings.left_y = joystick_readings.left_y;
+                print_vals = true;
+            }
+
+            if previous_readings
+                .left_x
+                .abs_diff(joystick_readings.left_x) 
+                > DEADZONE 
+            {
+                servo_wrist_pitch.set_angle(map_joystick_raw_to_degree(joystick_readings.left_x));
+                previous_readings.left_x = joystick_readings.left_x;
                 print_vals = true;
             }
 
