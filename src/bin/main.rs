@@ -42,7 +42,7 @@ async fn main(spawner: Spawner) -> ! {
     // generator parameters: -o esp32 -o esp32-wroom-32 -o embassy -o unstable-hal -o log -o esp-backtrace -o vscode
 
     esp_println::logger::init_logger_from_env();
-
+    println!("main started");
     let config = esp_hal::Config::default().with_cpu_clock(CpuClock::max());
     let peripherals = esp_hal::init(config);
     let clock_cfg = PeripheralClockConfig::with_frequency(Rate::from_mhz(32)).unwrap();
@@ -77,15 +77,17 @@ async fn main(spawner: Spawner) -> ! {
         ServoType::Ts90a,
     );
     //joystick
-
+    println!("Initiating joysticks");
     let mut joysticks = joystick_controller_init(
         peripherals.ADC1,
         peripherals.GPIO34,
         peripherals.GPIO35,
         peripherals.GPIO32,
         peripherals.GPIO33,
+        peripherals.GPIO18,
+        peripherals.GPIO19, 
     );
-
+    println!("Joystick initated");
     let mut print_vals = true;
 
     let timg0 = TimerGroup::new(peripherals.TIMG0);
@@ -108,6 +110,15 @@ async fn main(spawner: Spawner) -> ! {
             }
         };
     };
+
+
+    println!(
+        "First reading:\nRX: {:?}\nRY: {:?}\nLX: {:?}\nLY: {:?}",
+        first_read.right_x,
+        first_read.right_y,
+        first_read.left_x,
+        first_read.left_y
+    );
 
     let mut previous_readings = PreviousReadings {
         left_x: first_read.left_x,
