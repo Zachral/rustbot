@@ -46,6 +46,14 @@ where
             right_y: nb::block!(self.adc.read_oneshot(&mut self.right_y)).map_err(|_| AdcError)?,
         })
     }
+
+    pub fn left_btn_pressed(&self) -> bool{
+        self.left_joystick_btn.is_low()
+    }
+
+    pub fn right_btn_pressed(&self) -> bool{
+        self.right_joystick_btn.is_low()
+    }
 }
 
 #[cfg(feature = "esp32")]

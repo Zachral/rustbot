@@ -76,6 +76,7 @@ async fn main(spawner: Spawner) -> ! {
         peripherals.GPIO22,
         ServoType::Ts90a,
     );
+
     //joystick
     println!("Initiating joysticks");
     let mut joysticks = joystick_controller_init(
@@ -128,6 +129,14 @@ async fn main(spawner: Spawner) -> ! {
     };
 
     loop {
+
+        if joysticks.left_btn_pressed(){
+            println!("LEFT BUTTON PRESSED");
+        }
+
+        if joysticks.right_btn_pressed(){
+            println!("RIGHT BUTTON PRESSED"); 
+        }
         if let Ok(joystick_readings) = joysticks.read() {
             // samples.left_x, samples.left_y, samples.right_x, samples.right_y
 
