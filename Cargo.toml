@@ -27,6 +27,7 @@ esp-println = { version = "0.18.0", features = ["esp32", "log-04"] }
   
 servos = { path = "servos" }
 joystick = { path = "joystick"}
+rustbot-common = {path = "rustbot-common"}
 
 [workspace]
 members = ["joystick", "rustbot-common","servos"]

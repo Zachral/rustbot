@@ -11,6 +11,7 @@ use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::clock::CpuClock;
+use esp_hal::peripherals;
 use esp_hal::timer::timg::TimerGroup;
 use esp_println::println;
 
@@ -18,6 +19,7 @@ use esp_hal::mcpwm::timer::PwmWorkingMode;
 use esp_hal::mcpwm::{McPwm, PeripheralClockConfig};
 use esp_hal::time::Rate;
 use joystick::{AdcError, joystick_controller_init, map_joystick_raw_to_degree};
+use rustbot_common::{MAX_ANGLE_DEGREE, MIN_ANGLE_DEGREE};
 use servos::{ServoType, servo_init};
 
 // This creates a default app-descriptor required by the esp-idf bootloader.
@@ -48,6 +50,9 @@ async fn main(spawner: Spawner) -> ! {
     let clock_cfg = PeripheralClockConfig::with_frequency(Rate::from_mhz(32)).unwrap();
     let mut pwm0 = McPwm::new(peripherals.MCPWM0, clock_cfg);
     let mut pwm1 = McPwm::new(peripherals.MCPWM1, clock_cfg);
+    let mut gripping = false;
+    let mut both_were_pressed = false;
+
     //Servo setup
     let mut servo_waist = servo_init(
         pwm0.operator0,
@@ -84,7 +89,14 @@ async fn main(spawner: Spawner) -> ! {
         ServoType::Ts90a,
     );
 
-    servo_wrist_roll.set_pulse_width(0);
+    let mut servo_grip = servo_init(
+        pwm1.operator2,
+        &pwm1.timer0,
+        peripherals.GPIO17,
+        ServoType::Ts90a,
+    );
+    let mut grip_angle: i32 = 90;
+    servo_grip.set_angle(grip_angle);
 
     //joystick
     println!("Initiating joysticks");
@@ -134,15 +146,47 @@ async fn main(spawner: Spawner) -> ! {
     };
 
     loop {
-        if joysticks.left_btn_pressed() {
+        let left_btn = joysticks.left_btn_pressed();
+        let right_btn = joysticks.right_btn_pressed();
+
+        while joysticks.left_btn_pressed() && joysticks.right_btn_pressed() && !gripping {
+            println!("GRIPPING");
+            grip_angle = (grip_angle + 1).min(MAX_ANGLE_DEGREE);
+            println!("Grip angle is: {:?}", grip_angle);
+            servo_grip.set_angle(grip_angle);
+            Timer::after(Duration::from_millis(20)).await;
+
+            if !joysticks.left_btn_pressed() || !joysticks.right_btn_pressed() {
+                gripping = true;
+                println!("GRIPPING IS TRUE");
+            }
+
+        }
+
+        while joysticks.left_btn_pressed() && joysticks.right_btn_pressed() && gripping {
+            println!("RELEASING");
+            grip_angle = (grip_angle - 1).max(MIN_ANGLE_DEGREE);
+            println!("Release angle is: {:?}", grip_angle);
+            servo_grip.set_angle(grip_angle);
+            Timer::after(Duration::from_millis(20)).await;
+
+            if !joysticks.left_btn_pressed() || !joysticks.right_btn_pressed() {
+                gripping = false;
+                println!("GRIPPING IS FALSE"); 
+            }
+           
+        }
+
+        if left_btn {
             println!("LEFT BUTTON PRESSED");
             servo_wrist_roll.set_pulse_width(1400);
-        } else if joysticks.right_btn_pressed() {
+        } else if right_btn {
             println!("RIGHT BUTTON PRESSED");
             servo_wrist_roll.set_pulse_width(1600);
         } else {
             servo_wrist_roll.set_pulse_width(1500);
         }
+
         // if let Ok(joystick_readings) = joysticks.read() {
         //     // samples.left_x, samples.left_y, samples.right_x, samples.right_y
 

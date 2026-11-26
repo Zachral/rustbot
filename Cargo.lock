@@ -1426,6 +1426,7 @@ dependencies = [
  "esp-println",
  "esp-rtos",
  "joystick",
+ "rustbot-common",
  "servos",
 ]
 
