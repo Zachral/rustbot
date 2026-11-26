@@ -77,6 +77,15 @@ async fn main(spawner: Spawner) -> ! {
         ServoType::Ts90a,
     );
 
+    let mut servo_wrist_roll = servo_init(
+        pwm1.operator1,
+        &pwm1.timer0,
+        peripherals.GPIO16,
+        ServoType::Ts90a,
+    );
+
+    servo_wrist_roll.set_pulse_width(0);
+
     //joystick
     println!("Initiating joysticks");
     let mut joysticks = joystick_controller_init(
@@ -86,7 +95,7 @@ async fn main(spawner: Spawner) -> ! {
         peripherals.GPIO32,
         peripherals.GPIO33,
         peripherals.GPIO18,
-        peripherals.GPIO19, 
+        peripherals.GPIO19,
     );
     println!("Joystick initated");
     let mut print_vals = true;
@@ -112,13 +121,9 @@ async fn main(spawner: Spawner) -> ! {
         };
     };
 
-
     println!(
         "First reading:\nRX: {:?}\nRY: {:?}\nLX: {:?}\nLY: {:?}",
-        first_read.right_x,
-        first_read.right_y,
-        first_read.left_x,
-        first_read.left_y
+        first_read.right_x, first_read.right_y, first_read.left_x, first_read.left_y
     );
 
     let mut previous_readings = PreviousReadings {
@@ -129,72 +134,73 @@ async fn main(spawner: Spawner) -> ! {
     };
 
     loop {
-
-        if joysticks.left_btn_pressed(){
+        if joysticks.left_btn_pressed() {
             println!("LEFT BUTTON PRESSED");
+            servo_wrist_roll.set_pulse_width(1400);
+        } else if joysticks.right_btn_pressed() {
+            println!("RIGHT BUTTON PRESSED");
+            servo_wrist_roll.set_pulse_width(1600);
+        } else {
+            servo_wrist_roll.set_pulse_width(1500);
         }
+        // if let Ok(joystick_readings) = joysticks.read() {
+        //     // samples.left_x, samples.left_y, samples.right_x, samples.right_y
 
-        if joysticks.right_btn_pressed(){
-            println!("RIGHT BUTTON PRESSED"); 
-        }
-        if let Ok(joystick_readings) = joysticks.read() {
-            // samples.left_x, samples.left_y, samples.right_x, samples.right_y
+        //     if previous_readings
+        //         .right_x
+        //         .abs_diff(joystick_readings.right_x)
+        //         > DEADZONE
+        //     {
+        //         servo_shoulder.set_angle(map_joystick_raw_to_degree(joystick_readings.right_x));
+        //         previous_readings.right_x = joystick_readings.right_x;
+        //         print_vals = true;
+        //     }
 
-            if previous_readings
-                .right_x
-                .abs_diff(joystick_readings.right_x)
-                > DEADZONE
-            {
-                servo_shoulder.set_angle(map_joystick_raw_to_degree(joystick_readings.right_x));
-                previous_readings.right_x = joystick_readings.right_x;
-                print_vals = true;
-            }
+        //     if previous_readings
+        //         .right_y
+        //         .abs_diff(joystick_readings.right_y)
+        //         > DEADZONE
+        //     {
+        //         servo_waist.set_angle(map_joystick_raw_to_degree(joystick_readings.right_y));
+        //         previous_readings.right_y = joystick_readings.right_y;
+        //         print_vals = true;
+        //     }
 
-            if previous_readings
-                .right_y
-                .abs_diff(joystick_readings.right_y)
-                > DEADZONE
-            {
-                servo_waist.set_angle(map_joystick_raw_to_degree(joystick_readings.right_y));
-                previous_readings.right_y = joystick_readings.right_y;
-                print_vals = true;
-            }
+        //     if previous_readings
+        //         .left_y
+        //         .abs_diff(joystick_readings.left_y)
+        //         > DEADZONE
+        //     {
+        //         servo_elbow.set_angle(map_joystick_raw_to_degree(joystick_readings.left_y));
+        //         previous_readings.left_y = joystick_readings.left_y;
+        //         print_vals = true;
+        //     }
 
-            if previous_readings
-                .left_y
-                .abs_diff(joystick_readings.left_y) 
-                > DEADZONE 
-            {
-                servo_elbow.set_angle(map_joystick_raw_to_degree(joystick_readings.left_y));
-                previous_readings.left_y = joystick_readings.left_y;
-                print_vals = true;
-            }
+        //     if previous_readings
+        //         .left_x
+        //         .abs_diff(joystick_readings.left_x)
+        //         > DEADZONE
+        //     {
+        //         servo_wrist_pitch.set_angle(map_joystick_raw_to_degree(joystick_readings.left_x));
+        //         previous_readings.left_x = joystick_readings.left_x;
+        //         print_vals = true;
+        //     }
 
-            if previous_readings
-                .left_x
-                .abs_diff(joystick_readings.left_x) 
-                > DEADZONE 
-            {
-                servo_wrist_pitch.set_angle(map_joystick_raw_to_degree(joystick_readings.left_x));
-                previous_readings.left_x = joystick_readings.left_x;
-                print_vals = true;
-            }
+        //     if print_vals {
+        //         print_vals = false;
 
-            if print_vals {
-                print_vals = false;
-
-                println!(
-                    "left_x: {:?}
-                    left_y: {:?}
-                    right_x: {:?}
-                    right_y: {:?}",
-                    joystick_readings.left_x,
-                    joystick_readings.left_y,
-                    joystick_readings.right_x,
-                    joystick_readings.right_y
-                );
-            }
-        }
+        //         println!(
+        //             "left_x: {:?}
+        //             left_y: {:?}
+        //             right_x: {:?}
+        //             right_y: {:?}",
+        //             joystick_readings.left_x,
+        //             joystick_readings.left_y,
+        //             joystick_readings.right_x,
+        //             joystick_readings.right_y
+        //         );
+        //     }
+        // }
 
         Timer::after(Duration::from_millis(50)).await;
     }

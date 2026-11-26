@@ -2,7 +2,10 @@
 
 #[cfg(feature = "esp32")]
 use esp_hal::{
-    Blocking, analog::adc::{Adc, AdcChannel, AdcConfig, AdcPin, Attenuation}, gpio::{AnalogPin, Input, InputConfig, Pull}, peripherals::ADC1,
+    Blocking,
+    analog::adc::{Adc, AdcChannel, AdcConfig, AdcPin, Attenuation},
+    gpio::{AnalogPin, Input, InputConfig, Pull},
+    peripherals::ADC1,
 };
 use rustbot_common::{MAX_ANGLE_DEGREE, MIN_ANGLE_DEGREE};
 
@@ -47,11 +50,11 @@ where
         })
     }
 
-    pub fn left_btn_pressed(&self) -> bool{
+    pub fn left_btn_pressed(&self) -> bool {
         self.left_joystick_btn.is_low()
     }
 
-    pub fn right_btn_pressed(&self) -> bool{
+    pub fn right_btn_pressed(&self) -> bool {
         self.right_joystick_btn.is_low()
     }
 }
@@ -65,22 +68,22 @@ pub fn joystick_controller_init<'d, LX, LY, RX, RY, LB, RB>(
     right_y_pin: RY,
     left_btn: LB,
     right_btn: RB,
-) -> JoystickController <'d, LX, LY, RX, RY>
+) -> JoystickController<'d, LX, LY, RX, RY>
 where
     LX: AdcChannel + AnalogPin,
     LY: AdcChannel + AnalogPin,
     RX: AdcChannel + AnalogPin,
     RY: AdcChannel + AnalogPin,
     LB: esp_hal::gpio::InputPin + 'd,
-    RB: esp_hal::gpio::InputPin + 'd
+    RB: esp_hal::gpio::InputPin + 'd,
 {
     let mut config = AdcConfig::<ADC1>::new();
     let left_x = config.enable_pin(left_x_pin, Attenuation::_11dB);
     let left_y = config.enable_pin(left_y_pin, Attenuation::_11dB);
     let right_x = config.enable_pin(right_x_pin, Attenuation::_11dB);
     let right_y = config.enable_pin(right_y_pin, Attenuation::_11dB);
-    let left_joystick_btn = Input::new(left_btn, InputConfig::default().with_pull(Pull::Up)); 
-    let right_joystick_btn = Input::new(right_btn, InputConfig::default().with_pull(Pull::Up)); 
+    let left_joystick_btn = Input::new(left_btn, InputConfig::default().with_pull(Pull::Up));
+    let right_joystick_btn = Input::new(right_btn, InputConfig::default().with_pull(Pull::Up));
     let adc = Adc::new(adc1, config);
 
     JoystickController {
@@ -90,7 +93,7 @@ where
         right_x,
         right_y,
         left_joystick_btn,
-        right_joystick_btn
+        right_joystick_btn,
     }
 }
 
